@@ -6,6 +6,7 @@ foo = TietoNative.parse(sample)
 print(foo.dict())
 print(foo.dict(True))
 
+assert sample == foo.compose()
 
 for name, field, value in foo.describe():
     print(

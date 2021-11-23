@@ -152,6 +152,7 @@ class Message(metaclass=MessageMeta):
             if full or value is not None:
                 yield name, field, value
 
+
 class ISO8583Message(Message):
     @classmethod
     def parse(cls, data):
@@ -175,4 +176,33 @@ class ISO8583Message(Message):
 
         if len(state) != 0:
             raise ValueError(f"Have {len(state)} unparsed bytes")
+        return message
+
+    def compose(self):
+        bit = 0
+        bitmap = ""
+
+        # calculate bitmaps
+        for name, field in reversed(self._fields.items()):
+            primary = isinstance(field, Primary)
+            if not primary:
+                if isinstance(field, Bitmap):
+                    value = "".join(reversed(bitmap[:64]))
+                    bitmap = bitmap[64:]
+                    if len(value.strip("0")) == 0:
+                        setattr(self, name, None)
+                        bitmap += "0"
+                    else:
+                        setattr(self, name, value)
+                        bitmap += "1"
+                elif getattr(self, name):
+                    bitmap += "1"
+                else:
+                    bitmap += "0"
+
+        message = ""
+        for name, field in self._fields.items():
+            value = getattr(self, name)
+            if value:
+                message += field.compose(value)
         return message
